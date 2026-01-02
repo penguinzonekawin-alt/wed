@@ -10,7 +10,21 @@
     <style>
         :root { --primary-color: #007AFF; --bg-color: #f0f2f5; --card-bg: #ffffff; --text-color: #1c1e21; --text-secondary: #65676b; --header-bg: rgba(255, 255, 255, 0.95); --icon-bg: #f0f2f5; --radius: 16px; --card-width: 300px; }
         [data-theme="dark"] { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #e4e6eb; --text-secondary: #a0a0a0; --header-bg: rgba(30, 30, 30, 0.95); --icon-bg: #2c2c2c; }
-        body { font-family: 'Kanit', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
+        
+        /* ป้องกันการเลือกข้อความและคลิกขวาทั้งเว็บ */
+        body { 
+            font-family: 'Kanit', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            margin: 0; padding: 0; 
+            -webkit-tap-highlight-color: transparent; 
+            overflow-x: hidden; 
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Standard syntax */
+        }
+
         .material-symbols-rounded, button, .menu-item, .icon-btn { -webkit-user-select: none; user-select: none; }
         header { background: var(--header-bg); backdrop-filter: blur(10px); padding: 0.8rem 2rem; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
         .brand { font-size: 1.6rem; font-weight: 700; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
@@ -77,6 +91,24 @@
         .time-text { color: #eee; font-size: 14px; font-family: 'Kanit'; font-weight: 400; margin-left: 10px; }
         .speed-btn { font-size: 14px; font-weight: 600; color: white; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 6px; min-width: 36px; text-align: center; }
         .link-pill { display: inline-flex; align-items: center; gap: 4px; background: rgba(0,122,255,0.1); color: var(--primary-color); padding: 4px 12px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; margin-top: 5px; font-weight: 500; }
+        
+        .share-btn {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary-color);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-family: 'Kanit';
+            font-weight: 500;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .share-btn:active { transform: scale(0.95); }
 
         @media (max-width: 768px) {
             header { flex-direction: column; align-items: stretch; padding: 1rem 1.5rem; gap: 1rem; }
@@ -97,7 +129,7 @@
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
     <header>
         <div class="brand">
@@ -125,9 +157,6 @@
                 <input type="range" id="sizeSliderDesktop" min="120" max="500" value="300" oninput="updateSetting('size', this.value)">
                 <button class="slider-btn" onclick="adjustSize(20)">+</button>
             </div>
-            <button id="notifBtnDesktop" class="icon-btn" onclick="toggleNotification()">
-                <span class="material-symbols-rounded">notifications</span>
-            </button>
             <button class="icon-btn" onclick="toggleTheme()">
                 <span id="themeIconDesktop" class="material-symbols-rounded">light_mode</span>
             </button>
@@ -151,11 +180,6 @@
                      <input type="range" id="sizeSliderMobile" min="120" max="600" value="300" style="width:100px" oninput="updateSetting('size', this.value)">
                      <button class="slider-btn" onclick="adjustSize(20)">+</button>
                 </div>
-            </div>
-            <div class="menu-item" onclick="toggleNotification()">
-                <span class="material-symbols-rounded">notifications</span>
-                <div class="menu-label">แจ้งเตือน</div>
-                <span id="notifIconMobile" class="material-symbols-rounded" style="color:var(--text-secondary)">toggle_off</span>
             </div>
             <div class="menu-item" onclick="toggleTheme()">
                 <span class="material-symbols-rounded">dark_mode</span>
@@ -196,6 +220,10 @@
                 <h2 id="modalTitle" class="card-title" style="font-size:1.4rem; -webkit-line-clamp:unset; margin-bottom:0.5rem;"></h2>
                 <div style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1rem;">
                     <span class="material-symbols-rounded" style="font-size:1rem; vertical-align:middle;">calendar_today</span> <span id="modalDate"></span>
+                    
+                    <button class="share-btn" onclick="shareVideo()">
+                        <span class="material-symbols-rounded" style="font-size:1.1rem;">share</span> แชร์คลิปนี้
+                    </button>
                 </div>
                 <div id="modalDesc" style="white-space:pre-wrap; line-height:1.6; color:var(--text-secondary);"></div>
             </div>
@@ -206,37 +234,19 @@
         const SHEET_ID = '1uYu86EAAGvIhhnnok5v007rvBxk_NvlknK7FFzgWqrE';
         const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
         let allVideos = [];
-        let settings = { filter: 'all', size: 300, theme: 'light', notifications: false };
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
-        }
+        let currentVideoData = null; // เก็บข้อมูลวีดีโอปัจจุบันเพื่อใช้ตอนแชร์
+        let settings = { filter: 'all', size: 300, theme: 'light' }; // ลบ notification state ออก
 
         window.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             fetchData();
-            setInterval(fetchData, 30000); 
+            // setInterval(fetchData, 30000); // ไม่จำเป็นต้อง Auto-refresh บ่อยถ้าไม่มีแจ้งเตือน
             setupProgressDragging();
         });
-
-        function getDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('PenguinDB', 1);
-                request.onupgradeneeded = e => e.target.result.createObjectStore('settings');
-                request.onsuccess = e => resolve(e.target.result);
-                request.onerror = e => reject(e);
-            });
-        }
-        async function setNotificationEnabled(isEnabled) {
-            const db = await getDB();
-            const transaction = db.transaction(['settings'], 'readwrite');
-            transaction.objectStore('settings').put(isEnabled, 'isEnabled');
-        }
 
         function loadSettings() {
             const saved = localStorage.getItem('penguinZoneSettings');
             if (saved) settings = { ...settings, ...JSON.parse(saved) };
-            setNotificationEnabled(settings.notifications);
             applySettingsToUI();
         }
         function saveSettings() { localStorage.setItem('penguinZoneSettings', JSON.stringify(settings)); }
@@ -247,11 +257,9 @@
             applySettingsToUI();
         }
         
-        // --- ฟังก์ชันปรับขนาดด้วยปุ่ม +/- ---
         function adjustSize(delta) {
             let current = parseInt(settings.size);
             let newSize = current + delta;
-            // ล็อกค่าต่ำสุด/สูงสุดตาม HTML (120 - 600)
             if (newSize < 120) newSize = 120;
             if (newSize > 600) newSize = 600;
             updateSetting('size', newSize);
@@ -266,47 +274,10 @@
             document.getElementById('sizeSliderMobile').value = settings.size;
             document.getElementById('dateFilterDesktop').value = settings.filter;
             document.getElementById('dateFilterMobile').value = settings.filter;
-            updateNotifUI();
         }
         function toggleTheme() { settings.theme = settings.theme === 'dark' ? 'light' : 'dark'; saveSettings(); applySettingsToUI(); }
 
-        function toggleNotification() {
-            if (!("Notification" in window)) { alert("อุปกรณ์นี้ไม่รองรับการแจ้งเตือน"); return; }
-            if (Notification.permission === "denied") { alert("ถูกปิดกั้น! กรุณาไปที่ตั้งค่า Browser > Site Settings > Notifications แล้วกด Allow"); return; }
-
-            if (Notification.permission === "default") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        settings.notifications = true;
-                        saveSettings();
-                        setNotificationEnabled(true);
-                        updateNotifUI();
-                        new Notification("Penguin Zone", { body: "เปิดการแจ้งเตือนแล้ว!" });
-                    }
-                });
-                return;
-            }
-
-            if (Notification.permission === "granted") {
-                settings.notifications = !settings.notifications; 
-                saveSettings();
-                setNotificationEnabled(settings.notifications); 
-                updateNotifUI();
-            }
-        }
-
-        function updateNotifUI() {
-            const btnD = document.getElementById('notifBtnDesktop');
-            const iconM = document.getElementById('notifIconMobile');
-            if (settings.notifications) {
-                btnD.classList.add('active');
-                iconM.textContent = 'toggle_on'; iconM.style.color = 'var(--primary-color)';
-            } else {
-                btnD.classList.remove('active');
-                iconM.textContent = 'toggle_off'; iconM.style.color = 'var(--text-secondary)';
-            }
-        }
-
+        // --- Fetch & Deep Link Logic ---
         async function fetchData() {
             try {
                 const res = await fetch(CSV_URL);
@@ -314,10 +285,30 @@
                 const newVideos = parseCSV(text).slice(1).map(r => ({
                     post: r[0], date: r[1], cover: r[2], video: r[3], caption: r[4], desc: r[5]
                 })).filter(v => v.post && v.post.toUpperCase() === 'TRUE');
+                
+                // กลับด้าน (ล่าสุดขึ้นก่อน)
                 allVideos = newVideos.reverse();
                 applyFilters();
+
+                // เช็คลิงก์แชร์ (?v=...)
+                checkDeepLink();
             } catch(e) { console.log(e); }
         }
+
+        function checkDeepLink() {
+            const params = new URLSearchParams(window.location.search);
+            const videoName = params.get('v');
+            if (videoName) {
+                // หาคลิปที่ชื่อตรงกัน
+                const target = allVideos.find(v => v.caption === videoName);
+                if (target) {
+                    openModal(target);
+                    // ล้าง URL ให้สะอาดหลังจากเปิดแล้ว (Optional)
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+        }
+
         function parseCSV(text) {
             const rows=[]; let r=[], c='', q=false;
             for(let i=0;i<text.length;i++){
@@ -343,6 +334,7 @@
             });
         }
 
+        // --- VIDEO PLAYER LOGIC ---
         const video = document.getElementById('mainPlayer');
         const wrapper = document.getElementById('playerWrapper');
         const controls = document.getElementById('customControls');
@@ -371,8 +363,50 @@
         const speeds = [1, 1.25, 1.5, 2]; let speedIdx = 0;
         function toggleSpeed() { speedIdx = (speedIdx + 1) % speeds.length; video.playbackRate = speeds[speedIdx]; document.getElementById('speedBtn').textContent = speeds[speedIdx] + 'x'; }
         async function togglePiP() { try { if (document.pictureInPictureElement) { await document.exitPictureInPicture(); } else if (document.pictureInPictureEnabled) { await video.requestPictureInPicture(); } } catch(e) { console.error(e); } }
-        function openModal(data) { let url = data.video; if(url.includes('dropbox.com')) url = url.replace(/dl=[01]/, 'raw=1'); video.src = url; video.load(); document.getElementById('modalTitle').textContent = data.caption; document.getElementById('modalDate').textContent = data.date; document.getElementById('modalDesc').innerHTML = (data.desc||'').replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" class="link-pill" target="_blank">🔗 Link</a>`); document.getElementById('videoModal').classList.add('active'); wrapper.classList.remove('paused'); document.getElementById('playIcon').textContent='pause'; centerPlayIcon.textContent = 'pause'; document.getElementById('bufferingSpinner').style.display = 'block'; video.play().then(_ => { document.getElementById('bufferingSpinner').style.display = 'none'; resetControlsTimer(); }).catch(error => { wrapper.classList.add('paused'); document.getElementById('playIcon').textContent='play_arrow'; centerPlayIcon.textContent = 'play_arrow'; document.getElementById('bufferingSpinner').style.display = 'none'; }); }
-        function closeModal() { document.getElementById('videoModal').classList.remove('active'); video.pause(); video.currentTime = 0; video.src = ""; speedIdx = 0; video.playbackRate = 1; document.getElementById('speedBtn').textContent = '1x'; clearTimeout(controlsTimeout); controls.classList.remove('hide'); isDragging = false; }
+        
+        function openModal(data) {
+            currentVideoData = data; // เก็บข้อมูลวีดีโอปัจจุบันไว้ใช้แชร์
+            let url = data.video;
+            if(url.includes('dropbox.com')) url = url.replace(/dl=[01]/, 'raw=1');
+            video.src = url; video.load(); 
+            document.getElementById('modalTitle').textContent = data.caption; 
+            document.getElementById('modalDate').textContent = data.date; 
+            document.getElementById('modalDesc').innerHTML = (data.desc||'').replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" class="link-pill" target="_blank">🔗 Link</a>`); 
+            document.getElementById('videoModal').classList.add('active'); 
+            wrapper.classList.remove('paused'); document.getElementById('playIcon').textContent='pause'; centerPlayIcon.textContent = 'pause'; document.getElementById('bufferingSpinner').style.display = 'block'; 
+            video.play().then(_ => { document.getElementById('bufferingSpinner').style.display = 'none'; resetControlsTimer(); }).catch(error => { wrapper.classList.add('paused'); document.getElementById('playIcon').textContent='play_arrow'; centerPlayIcon.textContent = 'play_arrow'; document.getElementById('bufferingSpinner').style.display = 'none'; }); 
+        }
+
+        function closeModal() { 
+            document.getElementById('videoModal').classList.remove('active'); 
+            video.pause(); video.currentTime = 0; video.src = ""; 
+            speedIdx = 0; video.playbackRate = 1; document.getElementById('speedBtn').textContent = '1x'; 
+            clearTimeout(controlsTimeout); controls.classList.remove('hide'); isDragging = false; 
+            currentVideoData = null;
+        }
+
+        // --- ฟังก์ชันแชร์ลิงก์ ---
+        function shareVideo() {
+            if (!currentVideoData) return;
+            const baseUrl = window.location.href.split('?')[0]; // เอา URL หลักตัด parameter เก่าออก
+            const shareUrl = `${baseUrl}?v=${encodeURIComponent(currentVideoData.caption)}`;
+            
+            // ใช้ Web Share API ถ้ามี (บนมือถือจะเปิดเมนูแชร์ของเครื่อง)
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Penguin Zone - ' + currentVideoData.caption,
+                    url: shareUrl
+                }).catch(console.error);
+            } else {
+                // ถ้าไม่มี (เช่นบน PC) ให้ Copy ลง Clipboard
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert('คัดลอกลิงก์แล้ว! ส่งต่อให้เพื่อนได้เลย');
+                }).catch(err => {
+                    alert('ไม่สามารถคัดลอกลิงก์ได้: ' + shareUrl);
+                });
+            }
+        }
+
         function applyFilters() { const term = document.getElementById('searchInput').value.toLowerCase(); const now = new Date(); const res = allVideos.filter(v => { const matchText = v.caption.toLowerCase().includes(term); const d = parseDate(v.date); let matchDate = true; if(settings.filter==='today') matchDate = d.toDateString()===now.toDateString(); else if(settings.filter==='week') { const s = new Date(now); s.setDate(now.getDate()-now.getDay()); const e = new Date(s); e.setDate(s.getDate()+6); matchDate = d>=s && d<=e; } else if(settings.filter==='month') matchDate = d.getMonth()===now.getMonth(); return matchText && matchDate; }); renderGrid(res); }
         function parseDate(s) { if(!s) return new Date(0); const p=s.split('/'); return p.length===3?new Date(p[2],p[1]-1,p[0]):new Date(0); }
         document.getElementById('searchInput').addEventListener('input', applyFilters);
